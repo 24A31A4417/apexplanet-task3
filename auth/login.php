@@ -10,33 +10,66 @@ $messageType = '';
 if (isset($_POST['login'])) {
 
     $email = trim($_POST['email']);
-    $password = $_POST['password'];
+    $password = trim($_POST['password']);
 
-    $query = "SELECT * FROM users WHERE email='$email'";
-    $result = mysqli_query($conn, $query);
+    // Server-side Validation
+    if (empty($email) || empty($password)) {
 
-    if (mysqli_num_rows($result) === 1) {
+        $message = "All fields are required.";
+        $messageType = "danger";
 
-        $user = mysqli_fetch_assoc($result);
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
-        if (password_verify($password, $user['password'])) {
-
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-
-            header("Location: ../index.php");
-            exit();
-
-        } else {
-
-            $message = "Invalid password.";
-            $messageType = "danger";
-        }
+        $message = "Invalid email format.";
+        $messageType = "danger";
 
     } else {
 
-        $message = "User not found.";
-        $messageType = "danger";
+        // Prepared Statement
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT * FROM users WHERE email = ?"
+        );
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "s",
+            $email
+        );
+
+        mysqli_stmt_execute($stmt);
+
+        $result = mysqli_stmt_get_result($stmt);
+
+        if (mysqli_num_rows($result) === 1) {
+
+            $user = mysqli_fetch_assoc($result);
+
+            if (password_verify($password, $user['password'])) {
+
+                // Session Variables
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+
+                // User Role Session
+                $_SESSION['role'] = $user['role'];
+
+                header("Location: ../index.php");
+                exit();
+
+            } else {
+
+                $message = "Invalid password.";
+                $messageType = "danger";
+            }
+
+        } else {
+
+            $message = "User not found.";
+            $messageType = "danger";
+        }
+
+        mysqli_stmt_close($stmt);
     }
 }
 
@@ -51,7 +84,7 @@ require_once '../includes/header.php';
 
             <div class="card shadow">
 
-                <div class="card-header text-center">
+                <div class="card-header text-center bg-primary text-white">
                     <h3>Login</h3>
                 </div>
 
@@ -68,23 +101,33 @@ require_once '../includes/header.php';
                     <form method="POST">
 
                         <div class="mb-3">
-                            <label>Email</label>
+
+                            <label class="form-label">
+                                Email
+                            </label>
 
                             <input
                                 type="email"
                                 name="email"
                                 class="form-control"
+                                maxlength="100"
                                 required>
+
                         </div>
 
                         <div class="mb-3">
-                            <label>Password</label>
+
+                            <label class="form-label">
+                                Password
+                            </label>
 
                             <input
                                 type="password"
                                 name="password"
                                 class="form-control"
+                                minlength="6"
                                 required>
+
                         </div>
 
                         <button

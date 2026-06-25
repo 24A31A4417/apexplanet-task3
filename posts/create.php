@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 require_once '../config/database.php';
 
 $message = '';
+$messageType = '';
 
 if (isset($_POST['create_post'])) {
 
@@ -18,21 +19,46 @@ if (isset($_POST['create_post'])) {
 
     $userId = $_SESSION['user_id'];
 
-    $query = "
-        INSERT INTO posts (
-            user_id,
-            title,
-            content
-        )
-        VALUES (
-            '$userId',
-            '$title',
-            '$content'
-        )
-    ";
+    // Server-side Validation
+    if (empty($title) || empty($content)) {
 
-    if (mysqli_query($conn, $query)) {
-        $message = "Post created successfully!";
+        $message = "All fields are required.";
+        $messageType = "danger";
+
+    } elseif (strlen($title) < 3) {
+
+        $message = "Title must contain at least 3 characters.";
+        $messageType = "danger";
+
+    } else {
+
+        // Prepared Statement
+        $stmt = mysqli_prepare(
+            $conn,
+            "INSERT INTO posts (user_id, title, content)
+             VALUES (?, ?, ?)"
+        );
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "iss",
+            $userId,
+            $title,
+            $content
+        );
+
+        if (mysqli_stmt_execute($stmt)) {
+
+            $message = "Post created successfully!";
+            $messageType = "success";
+
+        } else {
+
+            $message = "Failed to create post.";
+            $messageType = "danger";
+        }
+
+        mysqli_stmt_close($stmt);
     }
 }
 
@@ -44,15 +70,15 @@ require_once '../includes/navbar.php';
 
     <?php if (!empty($message)) : ?>
 
-        <div class="alert alert-success">
-            <?= $message ?>
+        <div class="alert alert-<?php echo $messageType; ?>">
+            <?php echo $message; ?>
         </div>
 
     <?php endif; ?>
 
     <div class="card shadow">
 
-        <div class="card-header">
+        <div class="card-header bg-primary text-white">
             <h3>Create Post</h3>
         </div>
 
@@ -62,24 +88,31 @@ require_once '../includes/navbar.php';
 
                 <div class="mb-3">
 
-                    <label>Title</label>
+                    <label class="form-label">
+                        Title
+                    </label>
 
                     <input
                         type="text"
                         name="title"
                         class="form-control"
+                        minlength="3"
+                        maxlength="255"
                         required>
 
                 </div>
 
                 <div class="mb-3">
 
-                    <label>Content</label>
+                    <label class="form-label">
+                        Content
+                    </label>
 
                     <textarea
                         name="content"
                         rows="6"
                         class="form-control"
+                        minlength="10"
                         required></textarea>
 
                 </div>

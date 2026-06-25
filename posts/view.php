@@ -12,12 +12,12 @@ require_once '../includes/header.php';
 require_once '../includes/navbar.php';
 
 $userId = $_SESSION['user_id'];
+$userRole = $_SESSION['role'] ?? 'editor';
 
-$search = $_GET['search'] ?? '';
+$search = trim($_GET['search'] ?? '');
 
 $limit = 5;
-
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 
 if ($page < 1) {
     $page = 1;
@@ -25,35 +25,123 @@ if ($page < 1) {
 
 $offset = ($page - 1) * $limit;
 
-$countQuery = "
-    SELECT COUNT(*) AS total
-    FROM posts
-    WHERE user_id = '$userId'
-    AND (
-        title LIKE '%$search%'
-        OR content LIKE '%$search%'
-    )
-";
+/*
+|--------------------------------------------------------------------------
+| Count Total Posts
+|--------------------------------------------------------------------------
+*/
 
-$countResult = mysqli_query($conn, $countQuery);
+if ($userRole === 'admin') {
 
-$totalPosts = mysqli_fetch_assoc($countResult)['total'];
+    $countSql = "
+        SELECT COUNT(*) AS total
+        FROM posts
+        WHERE title LIKE ?
+        OR content LIKE ?
+    ";
+
+    $countStmt = mysqli_prepare($conn, $countSql);
+
+    $searchParam = "%$search%";
+
+    mysqli_stmt_bind_param(
+        $countStmt,
+        "ss",
+        $searchParam,
+        $searchParam
+    );
+
+} else {
+
+    $countSql = "
+        SELECT COUNT(*) AS total
+        FROM posts
+        WHERE user_id = ?
+        AND (
+            title LIKE ?
+            OR content LIKE ?
+        )
+    ";
+
+    $countStmt = mysqli_prepare($conn, $countSql);
+
+    $searchParam = "%$search%";
+
+    mysqli_stmt_bind_param(
+        $countStmt,
+        "iss",
+        $userId,
+        $searchParam,
+        $searchParam
+    );
+}
+
+mysqli_stmt_execute($countStmt);
+$countResult = mysqli_stmt_get_result($countStmt);
+$totalPosts = mysqli_fetch_assoc($countResult)['total'] ?? 0;
+mysqli_stmt_close($countStmt);
 
 $totalPages = ceil($totalPosts / $limit);
 
-$query = "
-    SELECT *
-    FROM posts
-    WHERE user_id = '$userId'
-    AND (
-        title LIKE '%$search%'
-        OR content LIKE '%$search%'
-    )
-    ORDER BY created_at DESC
-    LIMIT $limit OFFSET $offset
-";
+/*
+|--------------------------------------------------------------------------
+| Fetch Posts
+|--------------------------------------------------------------------------
+*/
 
-$result = mysqli_query($conn, $query);
+if ($userRole === 'admin') {
+
+    $sql = "
+        SELECT posts.*, users.username
+        FROM posts
+        INNER JOIN users ON posts.user_id = users.id
+        WHERE posts.title LIKE ?
+        OR posts.content LIKE ?
+        ORDER BY posts.created_at DESC
+        LIMIT ? OFFSET ?
+    ";
+
+    $stmt = mysqli_prepare($conn, $sql);
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "ssii",
+        $searchParam,
+        $searchParam,
+        $limit,
+        $offset
+    );
+
+} else {
+
+    $sql = "
+        SELECT posts.*, users.username
+        FROM posts
+        INNER JOIN users ON posts.user_id = users.id
+        WHERE posts.user_id = ?
+        AND (
+            posts.title LIKE ?
+            OR posts.content LIKE ?
+        )
+        ORDER BY posts.created_at DESC
+        LIMIT ? OFFSET ?
+    ";
+
+    $stmt = mysqli_prepare($conn, $sql);
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "issii",
+        $userId,
+        $searchParam,
+        $searchParam,
+        $limit,
+        $offset
+    );
+}
+
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
 
 ?>
 
@@ -61,7 +149,9 @@ $result = mysqli_query($conn, $query);
 
     <div class="d-flex justify-content-between align-items-center mb-4">
 
-        <h2>My Posts</h2>
+        <h2>
+            <?php echo ($userRole === 'admin') ? 'All Posts (Admin)' : 'My Posts'; ?>
+        </h2>
 
         <a href="create.php" class="btn btn-success">
             + Create New Post
@@ -78,9 +168,9 @@ $result = mysqli_query($conn, $query);
                 name="search"
                 class="form-control"
                 placeholder="Search posts..."
-                value="<?= htmlspecialchars($search); ?>">
+                value="<?php echo htmlspecialchars($search); ?>">
 
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" type="submit">
                 Search
             </button>
 
@@ -97,36 +187,41 @@ $result = mysqli_query($conn, $query);
                 <div class="card-body">
 
                     <h4 class="fw-bold">
-                        <?= htmlspecialchars($post['title']); ?>
+                        <?php echo htmlspecialchars($post['title']); ?>
                     </h4>
 
                     <p>
-                        <?= nl2br(htmlspecialchars($post['content'])); ?>
+                        <?php echo nl2br(htmlspecialchars($post['content'])); ?>
                     </p>
 
-                    <small class="text-muted">
-                        Created:
-                        <?= $post['created_at']; ?>
+                    <small class="text-muted d-block mb-2">
+                        Created: <?php echo $post['created_at']; ?>
                     </small>
+
+                    <?php if ($userRole === 'admin'): ?>
+                        <small class="text-primary d-block mb-3">
+                            Author: <?php echo htmlspecialchars($post['username']); ?>
+                        </small>
+                    <?php endif; ?>
 
                     <div class="mt-3">
 
-                        <a
-                            href="edit.php?id=<?= $post['id']; ?>"
-                            class="btn btn-warning btn-sm">
+                        <?php if ($userRole === 'admin' || $post['user_id'] == $userId): ?>
 
-                            Edit
+                            <a
+                                href="edit.php?id=<?php echo $post['id']; ?>"
+                                class="btn btn-warning btn-sm">
+                                Edit
+                            </a>
 
-                        </a>
+                            <a
+                                href="delete.php?id=<?php echo $post['id']; ?>"
+                                class="btn btn-danger btn-sm"
+                                onclick="return confirm('Delete this post?')">
+                                Delete
+                            </a>
 
-                        <a
-                            href="delete.php?id=<?= $post['id']; ?>"
-                            class="btn btn-danger btn-sm"
-                            onclick="return confirm('Delete this post?')">
-
-                            Delete
-
-                        </a>
+                        <?php endif; ?>
 
                     </div>
 
@@ -144,13 +239,13 @@ $result = mysqli_query($conn, $query);
 
                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
 
-                        <li class="page-item <?= ($page == $i) ? 'active' : ''; ?>">
+                        <li class="page-item <?php echo ($page == $i) ? 'active' : ''; ?>">
 
                             <a
                                 class="page-link"
-                                href="?page=<?= $i ?>&search=<?= urlencode($search) ?>">
+                                href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>">
 
-                                <?= $i ?>
+                                <?php echo $i; ?>
 
                             </a>
 
@@ -174,4 +269,7 @@ $result = mysqli_query($conn, $query);
 
 </div>
 
-<?php require_once '../includes/footer.php'; ?>
+<?php
+mysqli_stmt_close($stmt);
+require_once '../includes/footer.php';
+?>

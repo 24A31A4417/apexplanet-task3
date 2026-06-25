@@ -9,13 +9,28 @@ if (isset($_POST['register'])) {
 
     $username = trim($_POST['username']);
     $email = trim($_POST['email']);
-    $password = $_POST['password'];
-    $confirmPassword = $_POST['confirm_password'];
+    $password = trim($_POST['password']);
+    $confirmPassword = trim($_POST['confirm_password']);
 
-    // Validation
-    if (empty($username) || empty($email) || empty($password) || empty($confirmPassword)) {
+    // Server-side Validation
+    if (
+        empty($username) ||
+        empty($email) ||
+        empty($password) ||
+        empty($confirmPassword)
+    ) {
 
         $message = "All fields are required.";
+        $messageType = "danger";
+
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        $message = "Invalid email format.";
+        $messageType = "danger";
+
+    } elseif (strlen($password) < 6) {
+
+        $message = "Password must be at least 6 characters.";
         $messageType = "danger";
 
     } elseif ($password !== $confirmPassword) {
@@ -25,9 +40,21 @@ if (isset($_POST['register'])) {
 
     } else {
 
-        // Check if email already exists
-        $checkQuery = "SELECT * FROM users WHERE email = '$email'";
-        $checkResult = mysqli_query($conn, $checkQuery);
+        // Check Existing Email (Prepared Statement)
+        $checkStmt = mysqli_prepare(
+            $conn,
+            "SELECT id FROM users WHERE email = ?"
+        );
+
+        mysqli_stmt_bind_param(
+            $checkStmt,
+            "s",
+            $email
+        );
+
+        mysqli_stmt_execute($checkStmt);
+
+        $checkResult = mysqli_stmt_get_result($checkStmt);
 
         if (mysqli_num_rows($checkResult) > 0) {
 
@@ -41,20 +68,26 @@ if (isset($_POST['register'])) {
                 PASSWORD_DEFAULT
             );
 
-            $insertQuery = "
-                INSERT INTO users (
-                    username,
-                    email,
-                    password
-                )
-                VALUES (
-                    '$username',
-                    '$email',
-                    '$hashedPassword'
-                )
-            ";
+            $role = "editor";
 
-            if (mysqli_query($conn, $insertQuery)) {
+            // Insert User (Prepared Statement)
+            $insertStmt = mysqli_prepare(
+                $conn,
+                "INSERT INTO users
+                (username, email, password, role)
+                VALUES (?, ?, ?, ?)"
+            );
+
+            mysqli_stmt_bind_param(
+                $insertStmt,
+                "ssss",
+                $username,
+                $email,
+                $hashedPassword,
+                $role
+            );
+
+            if (mysqli_stmt_execute($insertStmt)) {
 
                 $message = "Registration Successful!";
                 $messageType = "success";
@@ -64,7 +97,11 @@ if (isset($_POST['register'])) {
                 $message = "Registration Failed!";
                 $messageType = "danger";
             }
+
+            mysqli_stmt_close($insertStmt);
         }
+
+        mysqli_stmt_close($checkStmt);
     }
 }
 
@@ -79,7 +116,7 @@ require_once '../includes/header.php';
 
             <div class="card shadow">
 
-                <div class="card-header text-center">
+                <div class="card-header text-center bg-primary text-white">
                     <h3>Create Account</h3>
                 </div>
 
@@ -107,6 +144,8 @@ require_once '../includes/header.php';
                                 type="text"
                                 name="username"
                                 class="form-control"
+                                minlength="3"
+                                maxlength="50"
                                 required>
 
                         </div>
@@ -121,6 +160,7 @@ require_once '../includes/header.php';
                                 type="email"
                                 name="email"
                                 class="form-control"
+                                maxlength="100"
                                 required>
 
                         </div>
@@ -135,6 +175,7 @@ require_once '../includes/header.php';
                                 type="password"
                                 name="password"
                                 class="form-control"
+                                minlength="6"
                                 required>
 
                         </div>
@@ -149,6 +190,7 @@ require_once '../includes/header.php';
                                 type="password"
                                 name="confirm_password"
                                 class="form-control"
+                                minlength="6"
                                 required>
 
                         </div>
