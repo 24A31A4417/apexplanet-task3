@@ -1,50 +1,71 @@
-# ApexPlanet Internship - Task 02
+# ApexPlanet Internship - Task 03
 
-## CRUD Blog Application with User Authentication
+## Search, Pagination & UI Enhancements in PHP CRUD Blog
 
 ### Project Overview
 
-This project is a PHP and MySQL-based CRUD (Create, Read, Update, Delete) Blog Application developed as part of ApexPlanet Internship Task 02.
-
-The application allows users to register, log in securely, create blog posts, view their posts, update existing posts, and delete posts. User authentication is implemented using PHP sessions and password hashing.
+This project is developed as part of the **ApexPlanet Internship Task 03**. The objective of this task is to enhance the existing PHP CRUD Blog Application by implementing advanced features such as Search Functionality, Pagination, and User Interface Improvements.
 
 ---
 
-## Features
+## Features Implemented
 
-### User Authentication
+### Search Functionality
+
+* Search posts by title
+* Search posts by content
+* Dynamic filtering of results
+
+### Pagination
+
+* Display posts page-wise
+* Easy navigation between pages
+* Improved performance when handling multiple records
+
+### UI Enhancements
+
+* Responsive Bootstrap 5 design
+* Improved navigation bar
+* Professional card-based layout
+* Enhanced user experience across devices
+
+### Existing CRUD Features
+
+* Create Blog Posts
+* Read Blog Posts
+* Update Blog Posts
+* Delete Blog Posts
+
+### Authentication Features
 
 * User Registration
 * User Login
-* User Logout
+* Secure Logout
 * Session Management
-* Password Hashing using `password_hash()`
-* Password Verification using `password_verify()`
-
-### CRUD Operations
-
-* Create New Blog Posts
-* View Personal Blog Posts
-* Edit Existing Posts
-* Delete Posts
-
-### User Interface
-
-* Responsive Design using Bootstrap 5
-* Navigation Bar
-* Dashboard Page
-* Success and Error Alerts
 
 ---
 
 ## Technologies Used
 
-* PHP
-* MySQL
+### Frontend
+
 * HTML5
 * CSS3
 * Bootstrap 5
+
+### Backend
+
+* PHP
+
+### Database
+
+* MySQL
+
+### Tools
+
 * XAMPP
+* phpMyAdmin
+* Visual Studio Code
 * Git & GitHub
 
 ---
@@ -54,22 +75,14 @@ The application allows users to register, log in securely, create blog posts, vi
 ```text
 crud_blog/
 │
-├── assets/
-│   ├── css/
-│   └── images/
+├── assests/
+│   └── css/
 │
 ├── auth/
-│   ├── login.php
-│   ├── logout.php
-│   └── register.php
 │
 ├── config/
-│   └── database.php
 │
 ├── includes/
-│   ├── header.php
-│   ├── footer.php
-│   └── navbar.php
 │
 ├── posts/
 │   ├── create.php
@@ -77,105 +90,71 @@ crud_blog/
 │   ├── edit.php
 │   └── delete.php
 │
-├── database/
-│   └── blog.sql
-│
-├── README.md
-│
-└── index.php
+├── index.php
+└── README.md
 ```
 
 ---
 
-## Database Setup
+## How to Run
 
-### Create Database
+1. Start Apache and MySQL in XAMPP.
+2. Create a database named:
 
 ```sql
-CREATE DATABASE blog;
+blog
 ```
 
-### Import Database
+3. Import the required tables.
+4. Configure database credentials in:
 
-1. Open phpMyAdmin
-2. Create a database named `blog`
-3. Click on the database
-4. Select **Import**
-5. Choose `blog.sql`
-6. Click **Go**
-
----
-
-## Installation Steps
-
-1. Install XAMPP
-2. Start Apache and MySQL
-3. Clone this repository
-
-```bash
-git clone https://github.com/24A31A4417/apexplanet-task2.git
-```
-
-4. Move the project folder to:
-
-```text
-C:\xampp\htdocs\
-```
-
-5. Import the database file (`blog.sql`)
-6. Configure database credentials in:
-
-```text
+```php
 config/database.php
 ```
 
-7. Open the application:
+5. Open the project in browser:
 
 ```text
-http://localhost/crud_blog/
+http://localhost/crud_blog
 ```
 
 ---
 
-## Application Workflow
+## Learning Outcomes
 
-1. Register a new account
-2. Login using registered credentials
-3. Create a blog post
-4. View your posts
-5. Edit existing posts
-6. Delete unwanted posts
-7. Logout securely
+Through this task, I learned:
 
----
-
-## Screenshots
-
-Add screenshots of:
-
-* Registration Page
-* Login Page
-* Dashboard
-* Create Post Page
-* View Posts Page
+* Implementing Search Functionality in PHP & MySQL
+* Pagination Logic using SQL LIMIT
+* Improving User Interface with Bootstrap
+* Optimizing User Experience
+* Managing Dynamic Data Efficiently
 
 ---
 
-## Future Enhancements
+## Internship Details
 
-* Prepared Statements for enhanced security
-* Search Functionality
-* User Profile Management
-* Pagination
-* Rich Text Editor
-* AJAX Integration
+**Organization:** ApexPlanet
+
+**Task:** Task 03
+
+**Domain:** Web Development
 
 ---
 
 ## Author
-
-**Name:** Bhavyasri
-
-Developed as part of the **ApexPlanet Internship - Task 02**
+Name: Bhavyasri
+GitHub: https://github.com/24A31A4417
 
 ---
+
+### Task Status
+
+✅ Search Functionality Completed
+
+✅ Pagination Implemented
+
+✅ UI Enhancements Completed
+
+✅ Project Successfully Tested
+
